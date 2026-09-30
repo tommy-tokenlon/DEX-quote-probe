@@ -36,6 +36,6 @@ data/                 logs (gitignored) + sample_quotes.csv
 - `fee_bps`, `source` (v5: protocol/mmCode; v6: orderType/protocols), `quote_id` (quote to backend when debugging).
 - `bps_vs_mid`: vs Uniswap USDC/WETH 0.05% pool mid. Indicative only (pool mid can sit a few bps off market).
 
-## Status
-- v5 / v6 parsing checked against backend's documented sample responses (2026-09-29); not yet run live by Claude.
-- Test traffic is not excluded from SSR / MM stats (agreed: volume negligible).
+## Notes
+- `data/sample_quotes.csv` is a single illustrative snapshot from one run, not a benchmark. Quotes move with market conditions, size and time; results will differ between runs.
+- Running the probe sends a small number of quote requests to each venue. No orders are placed or signed.

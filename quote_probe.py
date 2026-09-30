@@ -50,7 +50,7 @@ LOG_FILE = os.path.join(DATA_DIR, "quotes_log_v3.csv")
 TIMEOUT = 15
 
 QUOTE_FROM = "0x0000000000000000000000000000000000000001"   # CoW needs a `from`; no funds
-V6_TEST_ADDRESS = "0x1111111111111111111111111111111111111111"  # per backend doc; any address works
+V6_TEST_ADDRESS = "0x1111111111111111111111111111111111111111"  # any address works
 
 TOKENS = {
     # symbol: (erc20 address, decimals, is_stable, native address used by Tokenlon v6)
@@ -131,7 +131,7 @@ def fmt_amount(x, sym):
 
 # ---------------------------------------------------------------- Tokenlon v5
 class TokenlonV5Quoter:
-    """Port of backend's tokenlon_v5_quote.py (Benjamin Lu, 2026-09-29). Throwaway key per run."""
+    """Tokenlon v5 quote client. Throwaway key per run."""
     PUBLISHER_RPC = "https://publisher.tokenlon.im/rpc"
     PUBLISHER_WS = "wss://publisher.tokenlon.im/exchange"
     STRATEGY = "AMMV2,RFQV2"
