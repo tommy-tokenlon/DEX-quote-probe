@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Secrets / local config
+.env
+*.key
+
+# Live probe output (keep only the curated sample)
+data/*.csv
+!data/sample_quotes.csv
+
+# OS / editor
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

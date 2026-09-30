@@ -1,0 +1,25 @@
+ts_utc,pair,size_usd,sell_amount,in_usd,venue,net_usd,pre_fee_net_usd,fee_bps,gas_usd,bps_vs_mid,bps_vs_best,bps_vs_best_competitor,pre_fee_bps_vs_best_competitor,best_venue,best_competitor,is_best,source,quote_id,note,error,mock,ref_price,ref_source,gas_gwei
+2026-09-30 04:13:40,ETH_USDT,10000,3.7419,10000.06,Tokenlon v5,9972.46,10002.47,30,0.0,-27.6,-33.09,-33.09,-3.09,CoW Swap,CoW Swap,0,AMMV2/AMMV2-Quoter,29--c52eca31-a95d-4dac-a009-2a738f87e4c2,relayer gas; feeDetail.gasFee=0,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,ETH_USDT,10000,3.7419,10000.06,Tokenlon v6,9973.96,10003.97,30,0.39,-26.11,-31.59,-31.59,-1.59,CoW Swap,CoW Swap,0,SOR/curve+uniswap v3,ed452ad8-1ff4-4a9e-af15-316ba829755c,gasUsed=640560,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,ETH_USDT,10000,3.7419,10000.06,CoW Swap,10005.57,,,0.0,5.5,0.0,0.0,,CoW Swap,CoW Swap,1,,,gas in fee; excl. surplus,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,ETH_USDT,10000,3.7419,10000.06,ParaSwap,10004.64,,,0.35,4.58,-0.92,-0.92,,CoW Swap,CoW Swap,0,,,aggregator,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,ETH_USDT,10000,3.7419,10000.06,Uniswap v3,9999.36,,,0.1,-0.71,-6.2,-6.2,,CoW Swap,CoW Swap,0,,,single pool fee=500,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,ETH_USDT,10000,3.7419,10000.06,1inch,9977.07,,,0.17,-22.99,-28.48,-28.48,,CoW Swap,CoW Swap,0,,,classic v6.0; excluded from best,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,ETH_USDT,50000,18.7094,50000.05,Tokenlon v5,49821.07,49970.98,30,0.0,-35.8,-42.66,-42.66,-12.7,CoW Swap,CoW Swap,0,AMMV2/AMMV2-Quoter,29--55a589ec-cccb-4ad3-a859-864fee7bed6e,relayer gas; feeDetail.gasFee=0,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,ETH_USDT,50000,18.7094,50000.05,Tokenlon v6,49848.02,49998.02,30,0.34,-30.41,-37.28,-37.28,-7.3,CoW Swap,CoW Swap,0,SOR/curve+uniswap v3,06c3bfeb-ba9d-475b-a042-3973b037ff4d,gasUsed=552951,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,ETH_USDT,50000,18.7094,50000.05,CoW Swap,50034.53,,,0.0,6.9,0.0,0.0,,CoW Swap,CoW Swap,1,,,gas in fee; excl. surplus,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,ETH_USDT,50000,18.7094,50000.05,ParaSwap,50002.1,,,0.5,0.41,-6.48,-6.48,,CoW Swap,CoW Swap,0,,,aggregator,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,ETH_USDT,50000,18.7094,50000.05,Uniswap v3,49947.86,,,0.12,-10.44,-17.32,-17.32,,CoW Swap,CoW Swap,0,,,single pool fee=500,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,ETH_USDT,50000,18.7094,50000.05,1inch,49886.84,,,0.17,-22.64,-29.52,-29.52,,CoW Swap,CoW Swap,0,,,classic v6.0; excluded from best,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,ETH_USDT,100000,37.4188,100000.11,Tokenlon v5,99610.87,99910.6,30,0.0,-38.92,-44.23,-44.23,-14.28,CoW Swap,CoW Swap,0,AMMV2/AMMV2-Quoter,29--13c1d6b2-da91-4c14-82dc-8be4fb948143,relayer gas; feeDetail.gasFee=0,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,ETH_USDT,100000,37.4188,100000.11,Tokenlon v6,99676.65,99976.58,30,0.46,-32.35,-37.66,-37.66,-7.68,CoW Swap,CoW Swap,0,SOR/curve+uniswap v3,7b2020ab-82f5-4ddb-b448-855ee65d8fb5,gasUsed=746131,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,ETH_USDT,100000,37.4188,100000.11,CoW Swap,100053.45,,,0.0,5.33,0.0,0.0,,CoW Swap,CoW Swap,1,,,gas in fee; excl. surplus,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,ETH_USDT,100000,37.4188,100000.11,ParaSwap,99982.22,,,0.65,-1.79,-7.12,-7.12,,CoW Swap,CoW Swap,0,,,aggregator,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,ETH_USDT,100000,37.4188,100000.11,Uniswap v3,99773.45,,,0.13,-22.67,-27.98,-27.98,,CoW Swap,CoW Swap,0,,,single pool fee=500,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,ETH_USDT,100000,37.4188,100000.11,1inch,99768.97,,,0.17,-23.11,-28.43,-28.43,,CoW Swap,CoW Swap,0,,,classic v6.0; excluded from best,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,USDT_ETH,10000,10000,10000.0,Tokenlon v5,9958.19,9988.16,30,0.0,-41.81,-31.36,-31.36,-1.36,ParaSwap,ParaSwap,0,AMMV2/AMMV2-Quoter,29--020f37b7-3257-4dda-8172-6f9c283f01b3,relayer gas; feeDetail.gasFee=0,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,USDT_ETH,10000,10000,10000.0,Tokenlon v6,9963.07,9993.05,30,0.0,-36.93,-26.47,-26.47,3.54,ParaSwap,ParaSwap,0,SOR/curve+uniswap v3,1e82c8b0-9051-4044-9807-e68d14c25996,gasUsed=0,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,USDT_ETH,10000,10000,10000.0,CoW Swap,9988.62,,,0.0,-11.38,-0.9,-0.9,,ParaSwap,ParaSwap,0,,,gas in fee; excl. surplus,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,USDT_ETH,10000,10000,10000.0,ParaSwap,9989.51,,,0.46,-10.49,0.0,0.0,,ParaSwap,ParaSwap,1,,,aggregator,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,USDT_ETH,10000,10000,10000.0,Uniswap v3,9985.61,,,0.09,-14.39,-3.9,-3.9,,ParaSwap,ParaSwap,0,,,single pool fee=500,,0,2672.46,uniswap_mid,0.228
+2026-09-30 04:13:40,USDT_ETH,10000,10000,10000.0,1inch,9962.0,,,0.17,-38.0,-27.54,-27.54,,ParaSwap,ParaSwap,0,,,classic v6.0; excluded from best,,0,2672.46,uniswap_mid,0.228
