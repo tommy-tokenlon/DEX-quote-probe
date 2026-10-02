@@ -8,6 +8,8 @@ A "sample" = one probe run x one direction x one size. Tokenlon v5 wins a sample
 received >= the best competitor's (CoW Swap, ParaSwap, Uniswap v3, 1inch). Winners are recomputed
 from each venue's net_usd, so older log rows written under different "best" rules are judged the same way.
 Samples where v5 returned no quote are left out of the win rate and counted in v5_no_quote.
+prefee_* columns judge v5's amount before its own fee (pre_fee_net_usd) against the same best competitor:
+the gap between net and pre-fee = fee effect; the pre-fee gap = route / MM pricing effect.
 
 Usage:
   python3 report.py                  # latest ISO week in the log
@@ -46,20 +48,28 @@ def load_samples(include_mock=False):
             if r["pair"] not in CANONICAL or (r.get("mock") == "1" and not include_mock):
                 continue
             net = float(r["net_usd"]) if r["net_usd"] else None
-            groups[(r["ts_utc"], r["pair"], int(r["size_usd"]))][r["venue"]] = net
+            pre = float(r["pre_fee_net_usd"]) if r.get("pre_fee_net_usd") else None
+            groups[(r["ts_utc"], r["pair"], int(r["size_usd"]))][r["venue"]] = (net, pre)
 
     by_week = defaultdict(list)
     for (ts, direction, size), venues in groups.items():
-        comps = {v: n for v, n in venues.items()
+        comps = {v: n for v, (n, _) in venues.items()
                  if v not in TOKENLON_VENUES and v not in EXCLUDE_FROM_BEST and n is not None}
         if not comps:
             continue                                   # nothing to compare against
         best_venue = max(comps, key=comps.get)
-        v5 = venues.get(TOKENLON)
-        gap = round((v5 - comps[best_venue]) / comps[best_venue] * 1e4, 2) if v5 is not None else None
+        best = comps[best_venue]
+        v5, v5_pre = venues.get(TOKENLON, (None, None))
+        gap = lambda x: round((x - best) / best * 1e4, 2) if x is not None else None
         by_week[iso_week(ts)].append({"ts": ts, "direction": direction, "pair": CANONICAL[direction],
-                                      "size": size, "best_comp": best_venue, "gap_bps": gap})
+                                      "size": size, "best_comp": best_venue,
+                                      "gap_bps": gap(v5), "prefee_gap_bps": gap(v5_pre) if v5 is not None else None})
     return by_week
+
+
+def pct(samples, key):
+    vals = [s[key] for s in samples if s[key] is not None]
+    return round(100 * sum(v >= 0 for v in vals) / len(vals), 1) if vals else ""
 
 
 def summarise(samples, week, scope, label):
@@ -69,7 +79,8 @@ def summarise(samples, week, scope, label):
         at = [s for s in quoted if s["size"] == size]
         k = f"{size // 1000}k"
         row[f"n_{k}"] = len(at)
-        row[f"win_{k}_pct"] = round(100 * sum(s["gap_bps"] >= 0 for s in at) / len(at), 1) if at else ""
+        row[f"win_{k}_pct"] = pct(at, "gap_bps")
+        row[f"prefee_win_{k}_pct"] = pct(at, "prefee_gap_bps")
     losses = Counter(s["best_comp"] for s in quoted if s["gap_bps"] < 0)
     if losses:
         venue, n = losses.most_common(1)[0]
@@ -79,6 +90,8 @@ def summarise(samples, week, scope, label):
     core = [s["gap_bps"] for s in quoted if s["size"] == CORE_SIZE]
     row["avg_gap_50k_bps"] = round(statistics.mean(core), 2) if core else ""
     row["median_gap_50k_bps"] = round(statistics.median(core), 2) if core else ""
+    core_pre = [s["prefee_gap_bps"] for s in quoted if s["size"] == CORE_SIZE and s["prefee_gap_bps"] is not None]
+    row["avg_prefee_gap_50k_bps"] = round(statistics.mean(core_pre), 2) if core_pre else ""
     win = row[f"win_{CORE_SIZE // 1000}k_pct"]
     row["status"] = next(s for floor, s in STATUS_BANDS if win >= floor) if win != "" else "n/a"
     row["v5_no_quote"] = len(samples) - len(quoted)
@@ -125,8 +138,9 @@ def main():
     os.makedirs(REPORT_DIR, exist_ok=True)
     out = os.path.join(REPORT_DIR, f"quote_overview_{week}.csv")
     cols = ["week", "period_start", "period_end", "scope", "pair", "runs"] + \
-           [f"{c}_{s // 1000}k{p}" for s in SIZES_USD for c, p in (("n", ""), ("win", "_pct"))] + \
-           ["main_loss_to", "main_loss_share_pct", "avg_gap_50k_bps", "median_gap_50k_bps", "status", "v5_no_quote"]
+           [f"{c}_{s // 1000}k{p}" for s in SIZES_USD for c, p in (("n", ""), ("win", "_pct"), ("prefee_win", "_pct"))] + \
+           ["main_loss_to", "main_loss_share_pct", "avg_gap_50k_bps", "median_gap_50k_bps", "avg_prefee_gap_50k_bps",
+            "status", "v5_no_quote"]
     with open(out, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=cols)
         w.writeheader()
@@ -136,15 +150,18 @@ def main():
     win50 = total["win_50k_pct"]
     print(f"{week} ({total['period_start']} to {total['period_end']} UTC)  runs={total['runs']}  "
           f"Tokenlon v5 $50K win rate={win50}%  target={TARGET_WIN_PCT:.0f}%"
-          + (f"  gap={win50 - TARGET_WIN_PCT:+.1f}pp" if win50 != "" else ""))
-    print(f"\n{'pair':<11} {'$10K':>6} {'$50K':>6} {'$100K':>6}  {'main loss to':<20} {'avg gap $50K':>12}  status")
+          + (f"  gap={win50 - TARGET_WIN_PCT:+.1f}pp" if win50 != "" else "")
+          + f"  (pre-fee {total['prefee_win_50k_pct']}%)")
+    print("\nwin rate % shown as net (pre-fee)")
+    print(f"{'pair':<11} {'$10K':>13} {'$50K':>13} {'$100K':>13}  {'main loss to':<20} {'$50K gap net (pre)':>22}  status")
     for r in rows:
         if r["scope"] == "direction":
             continue
         loss = f"{r['main_loss_to']} ({r['main_loss_share_pct']}%)" if r["main_loss_to"] else "-"
-        gap = f"{r['avg_gap_50k_bps']:+.1f} bps" if r["avg_gap_50k_bps"] != "" else "-"
-        print(f"{r['pair']:<11} {r['win_10k_pct']:>6} {r['win_50k_pct']:>6} {r['win_100k_pct']:>6}  "
-              f"{loss:<20} {gap:>12}  {r['status']}")
+        gap = (f"{r['avg_gap_50k_bps']:+.1f} ({r['avg_prefee_gap_50k_bps']:+.1f}) bps"
+               if r["avg_prefee_gap_50k_bps"] != "" else "-")
+        wins = [f"{r[f'win_{k}_pct']} ({r[f'prefee_win_{k}_pct']})" for k in ("10k", "50k", "100k")]
+        print(f"{r['pair']:<11} {wins[0]:>13} {wins[1]:>13} {wins[2]:>13}  {loss:<20} {gap:>22}  {r['status']}")
     print(f"\n-> {out}")
 
 

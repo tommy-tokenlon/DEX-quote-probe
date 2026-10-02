@@ -12,9 +12,11 @@ Live runs append to `data/quotes_log_v3.csv` (gitignored). A trimmed example of 
 Overview CSV: one row per pair (both directions pooled), an `All pairs` total, and one row per direction.
 - `win_<size>_pct`: share of samples where **Tokenlon v5** net received >= best competitor (CoW, ParaSwap, Uniswap v3, 1inch).
   A sample = one run x one direction x one size. Samples with no v5 quote are excluded and counted in `v5_no_quote`.
+- `prefee_win_<size>_pct` / `avg_prefee_gap_50k_bps`: same, using v5's amount before its own fee. Net vs pre-fee
+  difference = fee effect; the pre-fee gap = route / MM pricing effect.
 - `main_loss_to` / `main_loss_share_pct`: competitor that was best in most of v5's losing samples.
 - `avg_gap_50k_bps` / `median_gap_50k_bps`: v5 vs best competitor at $50K (core tier), negative = v5 worse.
-- `status` by $50K win rate: green >= 60% (target), yellow 50-60%, red < 50%.
+- `status` by $50K net win rate: green >= 60% (target), yellow 50-60%, red < 50%.
 
 ## Setup & run
 Needs Python 3.9+. A virtualenv is recommended (and required on Homebrew Python, which blocks global `pip install`).
