@@ -1,7 +1,8 @@
 """
 Tokenlon large-quote competitiveness probe (prototype v3).
 
-Pulls same-moment quotes for ETH/USDT (both directions) at $10K / $50K / $100K from
+Pulls same-moment quotes for ETH/USDT, ETH/USDC, ETH/DAI and USDT/USDC (both directions) at
+$10K / $50K / $100K from
 Tokenlon v5, Tokenlon v6 and competitors, normalises them to net USD received
 (after fees and gas), and logs gaps in bps.
 
@@ -16,13 +17,14 @@ Venues:
   - CoW Swap     public quote API. Gas netted in fee; excludes solver surplus.
   - ParaSwap     public prices API.
   - Uniswap v3   QuoterV2 eth_call, single pool (floor, not a routed price).
-  - 1inch        Swap API (ONEINCH_API_KEY). Excluded from "best" until the ~24 bps gap vs the
-                 1inch web app is explained.
+  - 1inch        Swap API (ONEINCH_API_KEY). Counts as a competitor; note the API quote sits ~24 bps
+                 below the 1inch web app (unexplained), so it may understate 1inch.
 
 Usage:
   pip install -r requirements.txt
   python3 quote_probe.py           # live run, appends to data/quotes_log_v3.csv  (Windows: python)
   python3 quote_probe.py --mock    # offline logic test
+  python3 report.py                # weekly overview from the log (see report.py)
 
 Env (optional):
   ETH_RPC_URL       default https://ethereum-rpc.publicnode.com
@@ -57,14 +59,17 @@ TOKENS = {
     # symbol: (erc20 address, decimals, is_stable, native address used by Tokenlon v6)
     "ETH":  ("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", 18, False, "0x0000000000000000000000000000000000000000"),
     "USDT": ("0xdAC17F958D2ee523a2206206994597C13D831ec7", 6, True, "0xdAC17F958D2ee523a2206206994597C13D831ec7"),
+    "USDC": ("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", 6, True, "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"),
+    "DAI":  ("0x6B175474E89094C44Da98b954EedeAC495271d0F", 18, True, "0x6B175474E89094C44Da98b954EedeAC495271d0F"),
 }
 
-# (sell, buy) — Metabase convention A_B = user sells A for B. v1 scope: ETH/USDT only.
-SCENARIOS = [("ETH", "USDT"), ("USDT", "ETH")]
+# (sell, buy) — Metabase convention A_B = user sells A for B. Each pair is probed both ways.
+PAIRS = [("ETH", "USDT"), ("ETH", "USDC"), ("ETH", "DAI"), ("USDT", "USDC")]
+SCENARIOS = [d for a, b in PAIRS for d in ((a, b), (b, a))]
 SIZES_USD = [10_000, 50_000, 100_000]
 
 TOKENLON_VENUES = {"Tokenlon v5", "Tokenlon v6"}
-EXCLUDE_FROM_BEST = {"1inch"}   # see docstring
+EXCLUDE_FROM_BEST = set()       # venues logged but never counted as "best"
 
 UNI_QUOTER_V2 = "0x61fFE014bA17989E743c5F6cB21bF9697530B21e"
 UNI_FEE_TIERS = [100, 500, 3000]
@@ -417,7 +422,7 @@ def run(mock=False):
                         if r.get("pre") is not None:
                             s += f"(pre-fee {bps(r['pre'], best_comp):+.1f})"
                         cells.append(s)
-                print(f"{sell}_{buy:<5} ${size:>7,}  best competitor={best_comp_venue:<9} | " + "  ".join(cells))
+                print(f"{sell + '_' + buy:<10} ${size:>7,}  best competitor={best_comp_venue:<9} | " + "  ".join(cells))
     finally:
         if ctx.get("v5") is not None:
             ctx["v5"].close()
@@ -428,7 +433,7 @@ def run(mock=False):
         if new_file:
             w.writeheader()
         w.writerows(rows)
-    print(f"\nbps shown vs best competitor (excl. Tokenlon, 1inch). {len(rows)} rows -> {LOG_FILE}")
+    print(f"\nbps shown vs best competitor (excl. Tokenlon). {len(rows)} rows -> {LOG_FILE}")
     errs = [r for r in rows if r["error"] and "not set" not in r["error"]]
     for r in errs:
         print(f"  ! {r['pair']} {r['size_usd']} {r['venue']}: {r['error']}")

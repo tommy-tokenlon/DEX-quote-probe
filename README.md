@@ -1,7 +1,20 @@
 # quote_probe
 
-Same-moment quotes for **ETH/USDT only** (both directions) at $10K / $50K / $100K.
+Same-moment quotes for **ETH/USDT, ETH/USDC, ETH/DAI and USDT/USDC** (both directions) at $10K / $50K / $100K.
 Live runs append to `data/quotes_log_v3.csv` (gitignored). A trimmed example of the output is in `data/sample_quotes.csv`.
+
+## Weekly workflow
+1. Run `quote_probe.py` by hand at varied times through the week (each run ~5 min, 144 quotes). No scheduler.
+2. On report day run `report.py`. It rolls the latest ISO week (Mon-Sun UTC) into
+   `data/reports/quote_overview_<week>.csv`, which is the input for the weekly report.
+   `--week 2026-W40` picks a week, `--list-weeks` shows what's logged.
+
+Overview CSV: one row per pair (both directions pooled), an `All pairs` total, and one row per direction.
+- `win_<size>_pct`: share of samples where **Tokenlon v5** net received >= best competitor (CoW, ParaSwap, Uniswap v3, 1inch).
+  A sample = one run x one direction x one size. Samples with no v5 quote are excluded and counted in `v5_no_quote`.
+- `main_loss_to` / `main_loss_share_pct`: competitor that was best in most of v5's losing samples.
+- `avg_gap_50k_bps` / `median_gap_50k_bps`: v5 vs best competitor at $50K (core tier), negative = v5 worse.
+- `status` by $50K win rate: green >= 60% (target), yellow 50-60%, red < 50%.
 
 ## Setup & run
 Needs Python 3.9+. A virtualenv is recommended (and required on Homebrew Python, which blocks global `pip install`).
@@ -33,9 +46,10 @@ Optional env: `$env:ONEINCH_API_KEY="..."` (cmd: `set ONEINCH_API_KEY=...`), sam
 
 ## Layout
 ```
-quote_probe.py        main probe
+quote_probe.py        main probe (run ad hoc)
+report.py             weekly overview from the log
 scripts/              one-off diagnostics
-data/                 logs (gitignored) + sample_quotes.csv
+data/                 logs + reports/ (gitignored) + sample_quotes.csv
 ```
 
 ## Venues
@@ -46,10 +60,10 @@ data/                 logs (gitignored) + sample_quotes.csv
 | CoW Swap | public quote API | gas netted in fee; excludes solver surplus |
 | ParaSwap | public prices API | gasCostUSD deducted |
 | Uniswap v3 | QuoterV2, single pool | floor only, not a routed price |
-| 1inch | Swap API (key) | excluded from "best" (~24 bps gap vs web app unexplained) |
+| 1inch | Swap API (key) | counts as a competitor; API quote ~24 bps below web app (unexplained), may understate 1inch |
 
 ## Key columns
-- `bps_vs_best_competitor`: net received vs best competitor (excl. Tokenlon and 1inch). For Tokenlon rows, >= 0 = Tokenlon wins.
+- `bps_vs_best_competitor`: net received vs best competitor (excl. Tokenlon). For Tokenlon rows, >= 0 = Tokenlon wins.
 - `pre_fee_bps_vs_best_competitor` (Tokenlon rows only): same, before Tokenlon's fee. Gap between the two = fee effect; pre-fee gap = route / liquidity effect.
 - `fee_bps`, `source` (v5: protocol/mmCode; v6: orderType/protocols), `quote_id` (quote to backend when debugging).
 - `bps_vs_mid`: vs Uniswap USDC/WETH 0.05% pool mid. Indicative only (pool mid can sit a few bps off market).

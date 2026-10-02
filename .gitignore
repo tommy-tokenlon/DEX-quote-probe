@@ -11,6 +11,7 @@ venv/
 # Live probe output (keep only the curated sample)
 data/*.csv
 !data/sample_quotes.csv
+data/reports/
 
 # OS / editor
 Thumbs.db
