@@ -3,13 +3,31 @@
 Same-moment quotes for **ETH/USDT only** (both directions) at $10K / $50K / $100K.
 Live runs append to `data/quotes_log_v3.csv` (gitignored). A trimmed example of the output is in `data/sample_quotes.csv`.
 
-## Run (Windows)
+## Setup & run
+Needs Python 3.9+. A virtualenv is recommended (and required on Homebrew Python, which blocks global `pip install`).
+
+**macOS / Linux**
 ```
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python3 quote_probe.py --mock   # offline logic test
+python3 quote_probe.py          # live
+```
+Optional env: `export ONEINCH_API_KEY=...`, `export ETH_RPC_URL=...`
+
+If you installed Python from python.org on macOS and see `CERTIFICATE_VERIFY_FAILED`, run
+`/Applications/Python 3.x/Install Certificates.command` once.
+
+**Windows (PowerShell)**
+```
+python -m venv .venv
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 python quote_probe.py --mock   # offline logic test
 python quote_probe.py          # live
 ```
-Optional env: `ONEINCH_API_KEY`, `ETH_RPC_URL`.
+Optional env: `$env:ONEINCH_API_KEY="..."` (cmd: `set ONEINCH_API_KEY=...`), same for `ETH_RPC_URL`.
 
 `scripts/check_1inch.py` is a one-off diagnostic for the 1inch API vs web-app gap (needs `ONEINCH_API_KEY`).
 

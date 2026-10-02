@@ -3,7 +3,7 @@ One-off check #2: why 1inch API is ~24 bps below the 1inch web app.
   A) prints the full classic quote response (look for any fee fields)
   B) tries the Fusion (intent) quoter, which is what the web app likely uses by default
 
-    python check_1inch.py
+    python3 scripts/check_1inch.py   (Windows: python scripts/check_1inch.py)
 Then refresh the web app with 10,000 USDT -> ETH within ~30 seconds and note the ETH received.
 """
 import json
@@ -12,7 +12,7 @@ import requests
 
 KEY = os.environ.get("ONEINCH_API_KEY", "")
 if not KEY:
-    raise SystemExit("ONEINCH_API_KEY not set in this window")
+    raise SystemExit("ONEINCH_API_KEY not set in this shell")
 H = {"Authorization": f"Bearer {KEY}", "accept": "application/json"}
 
 USDT = "0xdAC17F958D2ee523a2206206994597C13D831ec7"

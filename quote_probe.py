@@ -20,9 +20,9 @@ Venues:
                  1inch web app is explained.
 
 Usage:
-  pip install requests websocket-client eth-account
-  python quote_probe.py            # live run, appends to quotes_log_v3.csv
-  python quote_probe.py --mock     # offline logic test
+  pip install -r requirements.txt
+  python3 quote_probe.py           # live run, appends to data/quotes_log_v3.csv  (Windows: python)
+  python3 quote_probe.py --mock    # offline logic test
 
 Env (optional):
   ETH_RPC_URL       default https://ethereum-rpc.publicnode.com
@@ -32,6 +32,7 @@ import csv
 import json
 import os
 import random
+import ssl
 import string
 import sys
 import time
@@ -159,8 +160,14 @@ class TokenlonV5Quoter:
         auth = urllib.parse.quote(f"Token {self._jwt()}")
         server = f"{random.randint(0, 999):03d}"
         session = "".join(random.choices(string.ascii_lowercase + string.digits, k=8))
+        # python.org macOS builds ship an empty system CA store; fall back to certifi only then,
+        # so OS/corporate roots still apply wherever the system store works (e.g. Windows).
+        sslopt = {}
+        if ssl.create_default_context().cert_store_stats()["x509_ca"] == 0:
+            import certifi
+            sslopt = {"ca_certs": certifi.where()}
         self.ws = websocket.create_connection(f"{self.PUBLISHER_WS}/{server}/{session}/websocket?Authorization={auth}",
-                                              timeout=30)
+                                              timeout=30, sslopt=sslopt)
         if self.ws.recv() != "o":
             raise RuntimeError("SockJS open frame not received")
         self._send("CONNECT\naccept-version:1.1,1.0\nheart-beat:0,0\n\n\x00")
