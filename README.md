@@ -5,18 +5,24 @@ Live runs append to `data/quotes_log_v3.csv` (gitignored). A trimmed example of 
 
 ## Weekly workflow
 1. Run `quote_probe.py` by hand at varied times through the week (each run ~5 min, 144 quotes). No scheduler.
-2. On report day run `report.py`. It rolls the latest ISO week (Mon-Sun UTC) into
-   `data/reports/quote_overview_<week>.csv`, which is the input for the weekly report.
-   `--week 2026-W40` picks a week, `--list-weeks` shows what's logged.
+2. On report day run `report.py`. Default window = rolling last 7 days to now (UTC); `--end "YYYY-MM-DD HH:MM"`
+   moves the end, `--days N` changes the length, `--week 2026-W40` gives an ISO week, `--list-weeks` shows what's logged.
+   Runs inside the same 3h UTC slot count once (`--slot-hours`). Outputs in `data/reports/`:
+   `quote_overview_<label>.csv` (section 1), `price_impact_<label>.csv` (section 2), `quote_summary_<label>.json`
+   (window, runs before/after de-dup, sample count, errors by venue).
 
-Overview CSV: one row per pair (both directions pooled), an `All pairs` total, and one row per direction.
+Section 1 overview: one row per pair (both directions pooled), an `All pairs` total, and one row per direction.
 - `win_<size>_pct`: share of samples where **Tokenlon v5** net received >= best competitor (CoW, ParaSwap, Uniswap v3, 1inch).
-  A sample = one run x one direction x one size. Samples with no v5 quote are excluded and counted in `v5_no_quote`.
+  A sample = one run-slot x one direction x one size. Samples with no v5 quote are excluded and counted in `v5_no_quote`.
 - `prefee_win_<size>_pct` / `avg_prefee_gap_50k_bps`: same, using v5's amount before its own fee. Net vs pre-fee
   difference = fee effect; the pre-fee gap = route / MM pricing effect.
 - `main_loss_to` / `main_loss_share_pct`: competitor that was best in most of v5's losing samples.
 - `avg_gap_50k_bps` / `median_gap_50k_bps`: v5 vs best competitor at $50K (core tier), negative = v5 worse.
-- `status` by $50K net win rate: green >= 60% (target), yellow 50-60%, red < 50%.
+- `status_net` / `status_prefee` by $50K win rate: green >= 60% (target), yellow 50-60%, red < 50%.
+- `low_n` = 1 when fewer than 10 samples at $50K: treat that row's status as indicative only.
+
+Section 2 price impact: per venue, bps worse at $50K / $100K than at $10K (positive = worse), paired within the
+same run and direction, gas added back (so falling gas share at size doesn't look like better pricing).
 
 ## Setup & run
 Needs Python 3.9+. A virtualenv is recommended (and required on Homebrew Python, which blocks global `pip install`).
