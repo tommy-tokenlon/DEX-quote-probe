@@ -1,15 +1,20 @@
 # quote_probe
 
-Same-moment quotes for **ETH/USDT, ETH/USDC, ETH/DAI and USDT/USDC** (both directions) at $10K / $50K / $100K.
+Same-moment quotes for **ETH/USDT, ETH/USDC, ETH/DAI and USDT/USDC** (both directions) at $50K / $100K / $300K.
 Live runs append to `data/quotes_log_v3.csv` (gitignored). A trimmed example of the output is in `data/sample_quotes.csv`.
 
 ## Weekly workflow
-1. Run `quote_probe.py` by hand at varied times through the week (each run ~5 min, 144 quotes). No scheduler.
+1. `quote_probe.py` runs 3x daily at 11:00 / 16:00 / 21:00 local (each run ~5 min, 144 quotes) via Windows Task
+   Scheduler; register with `powershell -ExecutionPolicy Bypass -File scripts\schedule_windows.ps1` (`-Remove` to undo).
+   Each run's console output is appended to `data/probe_runs.log`. Manual runs still work; avoid starting one within
+   ~15 min of another (CoW returned HTTP 429 on back-to-back runs) - same-slot runs are de-duplicated anyway.
 2. On report day run `report.py`. Default window = rolling last 7 days to now (UTC); `--end "YYYY-MM-DD HH:MM"`
    moves the end, `--days N` changes the length, `--week 2026-W40` gives an ISO week, `--list-weeks` shows what's logged.
    Runs inside the same 3h UTC slot count once (`--slot-hours`). Outputs in `data/reports/`:
    `quote_overview_<label>.csv` (section 1), `price_impact_<label>.csv` (section 2), `quote_summary_<label>.json`
    (window, runs before/after de-dup, sample count, errors by venue).
+
+$10K rows logged before 2026-10-09 are ignored by the report.
 
 Section 1 overview: one row per pair (both directions pooled), an `All pairs` total, and one row per direction.
 - `win_<size>_pct`: share of samples where **Tokenlon v5** net received >= best competitor (CoW, ParaSwap, Uniswap v3, 1inch).
@@ -21,7 +26,7 @@ Section 1 overview: one row per pair (both directions pooled), an `All pairs` to
 - `status_net` / `status_prefee` by $50K win rate: green >= 60% (target), yellow 50-60%, red < 50%.
 - `low_n` = 1 when fewer than 10 samples at $50K: treat that row's status as indicative only.
 
-Section 2 price impact: per venue, bps worse at $50K / $100K than at $10K (positive = worse), paired within the
+Section 2 price impact: per venue, bps worse at $100K / $300K than at $50K (positive = worse), paired within the
 same run and direction, gas added back (so falling gas share at size doesn't look like better pricing).
 
 ## Setup & run
@@ -54,9 +59,9 @@ Optional env: `$env:ONEINCH_API_KEY="..."` (cmd: `set ONEINCH_API_KEY=...`), sam
 
 ## Layout
 ```
-quote_probe.py        main probe (run ad hoc)
+quote_probe.py        main probe (scheduled 3x daily)
 report.py             weekly overview from the log
-scripts/              one-off diagnostics
+scripts/              schedule_windows.ps1 (Task Scheduler setup), one-off diagnostics
 data/                 logs + reports/ (gitignored) + sample_quotes.csv
 ```
 

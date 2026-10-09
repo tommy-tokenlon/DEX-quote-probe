@@ -12,6 +12,7 @@ venv/
 data/*.csv
 !data/sample_quotes.csv
 data/reports/
+data/*.log
 
 # OS / editor
 Thumbs.db

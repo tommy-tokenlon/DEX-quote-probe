@@ -2,7 +2,7 @@
 Tokenlon large-quote competitiveness probe (prototype v3).
 
 Pulls same-moment quotes for ETH/USDT, ETH/USDC, ETH/DAI and USDT/USDC (both directions) at
-$10K / $50K / $100K from
+$50K / $100K / $300K from
 Tokenlon v5, Tokenlon v6 and competitors, normalises them to net USD received
 (after fees and gas), and logs gaps in bps.
 
@@ -66,7 +66,7 @@ TOKENS = {
 # (sell, buy) — Metabase convention A_B = user sells A for B. Each pair is probed both ways.
 PAIRS = [("ETH", "USDT"), ("ETH", "USDC"), ("ETH", "DAI"), ("USDT", "USDC")]
 SCENARIOS = [d for a, b in PAIRS for d in ((a, b), (b, a))]
-SIZES_USD = [10_000, 50_000, 100_000]
+SIZES_USD = [50_000, 100_000, 300_000]
 
 TOKENLON_VENUES = {"Tokenlon v5", "Tokenlon v6"}
 EXCLUDE_FROM_BEST = set()       # venues logged but never counted as "best"
@@ -186,6 +186,8 @@ class TokenlonV5Quoter:
             try:
                 self._send("DISCONNECT\n\n\x00")
                 self.ws.close()
+            except Exception:
+                pass                    # socket already dead; must not abort the run before the CSV is written
             finally:
                 self.ws = None
 
@@ -230,9 +232,21 @@ class TokenlonV5Quoter:
 
 
 def quote_tokenlon_v5(sell, buy, amount_str, ctx):
-    if ctx.get("v5") is None:
-        ctx["v5"] = TokenlonV5Quoter()
-    msg = ctx["v5"].quote(sell, buy, amount_str)
+    # The WebSocket is shared across the run; if it drops mid-run (seen 2026-10-09), every later v5 quote failed.
+    # On a connection error, reconnect once with a fresh key/JWT; a plain no-quote timeout is not retried.
+    for attempt in (1, 2):
+        if ctx.get("v5") is None:
+            ctx["v5"] = TokenlonV5Quoter()
+        try:
+            msg = ctx["v5"].quote(sell, buy, amount_str)
+            break
+        except TimeoutError:
+            raise
+        except Exception:
+            ctx["v5"].close()
+            ctx["v5"] = None
+            if attempt == 2:
+                raise
     if not msg.get("exchangeable"):
         raise RuntimeError(f"no quote: {msg.get('reason') or msg.get('message')}")
     order = msg["order"]
@@ -270,6 +284,10 @@ def quote_cow(sell, buy, amount_str, ctx):
             "kind": "sell", "sellAmountBeforeFee": str(human_to_raw(amount_str, TOKENS[sell][1])),
             "partiallyFillable": False, "signingScheme": "eip712", "onchainOrder": False, "priceQuality": "optimal"}
     r = requests.post("https://api.cow.fi/mainnet/api/v1/quote", json=body, timeout=TIMEOUT)
+    if r.status_code == 429:                       # rate limit seen on back-to-back runs; one retry
+        wait = r.headers.get("Retry-After", "")
+        time.sleep(min(int(wait), 30) if wait.isdigit() else 10)
+        r = requests.post("https://api.cow.fi/mainnet/api/v1/quote", json=body, timeout=TIMEOUT)
     r.raise_for_status()
     q = r.json()["quote"]
     return {"out_raw": int(q["buyAmount"]), "gas_usd": 0.0, "note": "gas in fee; excl. surplus"}
