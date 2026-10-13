@@ -140,7 +140,9 @@ class TokenlonV5Quoter:
     """Tokenlon v5 quote client. Throwaway key per run."""
     PUBLISHER_RPC = "https://publisher.tokenlon.im/rpc"
     PUBLISHER_WS = "wss://publisher.tokenlon.im/exchange"
-    STRATEGY = "AMMV2,RFQV2"
+    # PMMV5 = market-maker quotes (e.g. OneBitX, SCP); without it only the AMM answers and USDS returns NO_DATA.
+    # Logs before 2026-10-13 used "AMMV2,RFQV2" and contain AMMV2 quotes only.
+    STRATEGY = "AMMV1,AMMV2,PMMV5,RFQV1,RFQV2"
 
     def __init__(self):
         from eth_account import Account  # lazy import: only needed for v5
@@ -194,15 +196,30 @@ class TokenlonV5Quoter:
     def _send(self, frame):
         self.ws.send(json.dumps([frame]))
 
-    def _recv_frames(self):
-        while True:
-            msg = self.ws.recv()
-            if msg == "h":
-                continue
-            if msg.startswith("a"):
-                return json.loads(msg[1:])
-            if msg.startswith("c"):
-                raise RuntimeError(f"SockJS closed: {msg}")
+    def _recv_frames(self, deadline=None):
+        # SockJS heartbeats ("h") arrive every ~25s, so without a deadline a pair that never gets a reply
+        # (e.g. DAI_USDS) spun here forever and the caller's timeout was never checked.
+        import websocket
+        try:
+            while True:
+                if deadline is not None:
+                    remaining = deadline - time.time()
+                    if remaining <= 0:
+                        raise TimeoutError("no reply before deadline")
+                    self.ws.settimeout(remaining)
+                try:
+                    msg = self.ws.recv()
+                except websocket.WebSocketTimeoutException:
+                    raise TimeoutError("no reply before deadline")
+                if msg == "h":
+                    continue
+                if msg.startswith("a"):
+                    return json.loads(msg[1:])
+                if msg.startswith("c"):
+                    raise RuntimeError(f"SockJS closed: {msg}")
+        finally:
+            if deadline is not None and self.ws:
+                self.ws.settimeout(30)
 
     def quote(self, base, quote, amount, timeout=15):
         if not self.ws:
@@ -215,15 +232,18 @@ class TokenlonV5Quoter:
                    f"X-SEND-BY-RELAYER:true\nX-STRATEGY:{self.STRATEGY}\n\n\x00")
         deadline = time.time() + timeout
         try:
-            while time.time() < deadline:
-                for frame in self._recv_frames():
+            while True:
+                try:
+                    frames = self._recv_frames(deadline)
+                except TimeoutError:
+                    raise TimeoutError(f"no quote for {topic}")
+                for frame in frames:
                     if not frame.startswith("MESSAGE") or f"subscription:{sub_id}" not in frame:
                         continue
                     body = frame.split("\n\n", 1)[1].rstrip("\x00")
                     if body == "None":
                         continue
                     return json.loads(body)
-            raise TimeoutError(f"no quote for {topic}")
         finally:
             try:
                 self._send(f"UNSUBSCRIBE\nid:{sub_id}\n\n\x00")

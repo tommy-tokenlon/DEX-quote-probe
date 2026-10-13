@@ -17,6 +17,11 @@ Live runs append to `data/quotes_log_v3.csv` (gitignored). A trimmed example of 
 $10K rows logged before 2026-10-09 are ignored by the report.
 
 Section 1 overview: one row per pair (both directions pooled), an `All pairs` total, and one row per direction.
+v5 rows logged before 2026-10-13 are **AMM-only** (strategy `AMMV2,RFQV2`; RFQV2 never answered). From 2026-10-13 the
+probe also requests PMMV5 market-maker quotes, as the app does. A paired check on 2026-10-13 put PMMV5 5-15 bps better
+on ETH/USDT and ETH/USDC (up to 24 bps on USDT->ETH $300K) and identical on ETH/DAI and USDT/USDC, so older v5 win rates
+on the USD pairs understate the app. Don't pool windows across this date.
+
 - `win_<size>_pct`: share of samples where **Tokenlon v5** net received >= best competitor (CoW, ParaSwap, Uniswap v3, 1inch).
   A sample = one run-slot x one direction x one size. Samples with no v5 quote are excluded and counted in `v5_no_quote`.
 - `prefee_win_<size>_pct` / `avg_prefee_gap_50k_bps`: same, using v5's amount before its own fee. Net vs pre-fee
@@ -68,7 +73,7 @@ data/                 logs + reports/ (gitignored) + sample_quotes.csv
 ## Venues
 | Venue | How | Fee / gas treatment |
 |---|---|---|
-| Tokenlon v5 | WebSocket (publisher.tokenlon.im), throwaway key per run, in memory only | received = maker amount x (1 - feeFactor); gas paid by relayer (charge unconfirmed) |
+| Tokenlon v5 | WebSocket (publisher.tokenlon.im), throwaway key per run, in memory only; strategy AMMV1,AMMV2,PMMV5,RFQV1,RFQV2 | received = maker amount x (1 - feeFactor); gas paid by relayer (charge unconfirmed) |
 | Tokenlon v6 | GET api.tokenlon.im/v6/swap/quote/1 | amountOut is pre-fee, pre-gas: fee deducted once, gasUsed x gasPrice deducted |
 | CoW Swap | public quote API | gas netted in fee; excludes solver surplus |
 | ParaSwap | public prices API | gasCostUSD deducted |
