@@ -18,8 +18,9 @@ if ($Remove) {
 }
 
 $Repo = Split-Path -Parent $PSScriptRoot
-$action = New-ScheduledTaskAction -Execute "cmd.exe" -WorkingDirectory $Repo `
-    -Argument "/c `"`"$Python`" -u -X utf8 quote_probe.py >> data\probe_runs.log 2>&1`""
+$launcher = Join-Path $PSScriptRoot "run_quote_probe_hidden.vbs"
+$action = New-ScheduledTaskAction -Execute "wscript.exe" -WorkingDirectory $Repo `
+    -Argument "//B //Nologo `"$launcher`" `"$Python`""
 $triggers = $Times | ForEach-Object { New-ScheduledTaskTrigger -Daily -At $_ }
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
     -ExecutionTimeLimit (New-TimeSpan -Minutes 30) -MultipleInstances IgnoreNew

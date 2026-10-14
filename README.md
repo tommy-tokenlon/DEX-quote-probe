@@ -6,6 +6,7 @@ Live runs append to `data/quotes_log_v3.csv` (gitignored). A trimmed example of 
 ## Weekly workflow
 1. `quote_probe.py` runs 3x daily at 11:00 / 16:00 / 21:00 local (each run ~5 min, 144 quotes) via Windows Task
    Scheduler; register with `powershell -ExecutionPolicy Bypass -File scripts\schedule_windows.ps1` (`-Remove` to undo).
+   Scheduled runs use a hidden launcher; Task Scheduler tracks the probe until it finishes and receives its exit code.
    Each run's console output is appended to `data/probe_runs.log`. Manual runs still work; avoid starting one within
    ~15 min of another (CoW returned HTTP 429 on back-to-back runs) - same-slot runs are de-duplicated anyway.
 2. On report day run `report.py`. Default window = rolling last 7 days to now (UTC); `--end "YYYY-MM-DD HH:MM"`
@@ -16,12 +17,12 @@ Live runs append to `data/quotes_log_v3.csv` (gitignored). A trimmed example of 
 
 $10K rows logged before 2026-10-09 are ignored by the report.
 
-Section 1 overview: one row per pair (both directions pooled), an `All pairs` total, and one row per direction.
 v5 rows logged before 2026-10-13 are **AMM-only** (strategy `AMMV2,RFQV2`; RFQV2 never answered). From 2026-10-13 the
 probe also requests PMMV5 market-maker quotes, as the app does. A paired check on 2026-10-13 put PMMV5 5-15 bps better
 on ETH/USDT and ETH/USDC (up to 24 bps on USDT->ETH $300K) and identical on ETH/DAI and USDT/USDC, so older v5 win rates
 on the USD pairs understate the app. Don't pool windows across this date.
 
+Section 1 overview: one row per pair (both directions pooled), an `All pairs` total, and one row per direction.
 - `win_<size>_pct`: share of samples where **Tokenlon v5** net received >= best competitor (CoW, ParaSwap, Uniswap v3, 1inch).
   A sample = one run-slot x one direction x one size. Samples with no v5 quote are excluded and counted in `v5_no_quote`.
 - `prefee_win_<size>_pct` / `avg_prefee_gap_50k_bps`: same, using v5's amount before its own fee. Net vs pre-fee
