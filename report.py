@@ -25,6 +25,11 @@ Section 3 (ranking, quote_rank_<label>.csv) -- shown first in the Confluence rep
   USD (All pairs), on both bases. It is taken per sample, so ETH price drift across the week does not leak in.
   Reference trade per direction (median sell amount and #1's median received) goes into the summary JSON.
 
+v5 data break: before 2026-10-13 13:00 UTC the probe asked v5 for AMM quotes only (AMMV2); from then on it also
+requests PMMV5 market-maker quotes. A window that straddles the break would mix both bases, so its start is moved
+to V5_DATA_BREAK (summary: window_clamped_to_v5_break = true). Windows that end before the break are untouched, and
+once the 7-day window starts after the break the clamp stops applying. --no-v5-clamp turns it off.
+
 De-duplication: runs closer together than --slot-hours (default 3h, same UTC slot) count once; the latest
 sample per (slot, direction, size) is kept.
 
@@ -57,6 +62,7 @@ RANK_SIZE = 100_000
 RANK_VENUES = IMPACT_VENUES
 REPORT_DIR = os.path.join(DATA_DIR, "reports")
 FMT = "%Y-%m-%d %H:%M:%S"
+V5_DATA_BREAK = datetime(2026, 10, 13, 13, 0, tzinfo=timezone.utc)   # first run with PMMV5 v5 quotes
 
 CANONICAL = {f"{a}_{b}": f"{a}/{b}" for a, b in PAIRS} | {f"{b}_{a}": f"{a}/{b}" for a, b in PAIRS}
 
@@ -269,6 +275,8 @@ def main():
     ap.add_argument("--week", help="ISO week instead of rolling window, e.g. 2026-W40")
     ap.add_argument("--list-weeks", action="store_true")
     ap.add_argument("--slot-hours", type=float, default=3, help="runs within the same slot count once (default 3)")
+    ap.add_argument("--no-v5-clamp", action="store_true",
+                    help="do not move a window that straddles V5_DATA_BREAK to start at the break")
     ap.add_argument("--include-mock", action="store_true", help="include --mock rows (testing only)")
     args = ap.parse_args()
 
@@ -290,6 +298,10 @@ def main():
         end = (datetime.strptime(args.end, "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc)
                if args.end else datetime.now(timezone.utc))
         start = end - timedelta(days=args.days)
+    clamped = not args.no_v5_clamp and start < V5_DATA_BREAK < end
+    if clamped:
+        start = V5_DATA_BREAK
+    if not args.week:
         label = f"{start:%Y%m%d}-{end:%Y%m%d}"
 
     win_rows = [r for r in rows if start <= parse_ts(r["ts_utc"]) <= end]
@@ -322,6 +334,7 @@ def main():
     errors = Counter((r["venue"], r["error"][:60]) for r in win_rows if r["error"])
     summary = {
         "label": label, "window_start_utc": f"{start:%Y-%m-%d %H:%M}", "window_end_utc": f"{end:%Y-%m-%d %H:%M}",
+        "window_clamped_to_v5_break": clamped,
         "raw_runs": len(raw_runs), "run_timestamps": raw_runs, "runs_after_dedupe": len({s["slot"] for s in samples}),
         "slot_hours": args.slot_hours, "samples": len(samples), "mock_rows_in_log_excluded": mock_rows,
         "min_n": MIN_N, "target_win_pct": TARGET_WIN_PCT, "competitors_excluded_from_best": sorted(EXCLUDE_FROM_BEST),
@@ -352,6 +365,8 @@ def main():
     print(f"{label}  {summary['window_start_utc']} to {summary['window_end_utc']} UTC  "
           f"runs={summary['raw_runs']} (after {args.slot_hours:g}h de-dup: {summary['runs_after_dedupe']})  "
           f"samples={summary['samples']}")
+    if clamped:
+        print(f"window start moved to v5 data break {V5_DATA_BREAK:%Y-%m-%d %H:%M} UTC (--no-v5-clamp to disable)")
     print(f"Tokenlon v5 $50K win rate: net {total['win_50k_pct']}% / pre-fee {total['prefee_win_50k_pct']}%  "
           f"(target {TARGET_WIN_PCT:.0f}%)")
     print("\n[1] overview   win % net (pre-fee)   * = n < MIN_N at $50K")
