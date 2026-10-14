@@ -52,9 +52,11 @@ If you installed Python from python.org on macOS and see `CERTIFICATE_VERIFY_FAI
 `/Applications/Python 3.x/Install Certificates.command` once.
 
 **Windows (PowerShell)**
+The repo lives in Google Drive, which syncs `.venv` between machines, and a venv only runs on the OS that built it.
+Keep the Windows venv outside the synced folder:
 ```
-python -m venv .venv
-.venv\Scripts\Activate.ps1
+python -m venv $env:USERPROFILE\.venvs\quote_probe
+& $env:USERPROFILE\.venvs\quote_probe\Scripts\Activate.ps1
 pip install -r requirements.txt
 python quote_probe.py --mock   # offline logic test
 python quote_probe.py          # live
